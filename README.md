@@ -1,3 +1,13 @@
+# Custom NGINX build
+
+This fork includes a custom build of `kubernetes/ingress-nginx` based on controller `v1.15.1`, updating the embedded NGINX version from `1.27.1` to `1.31.1` in `images/nginx/rootfs/build.sh`. This change was introduced to move the bundled NGINX runtime to a version that includes the upstream security fixes required for CVE remediation.
+
+During the upgrade, the patch `images/nginx/rootfs/patches/28_nginx-1.27.1-CVE-2025-23419.patch` was removed/disabled because it was specific to the previous NGINX `1.27.1` source tree and no longer applies cleanly against NGINX `1.31.1`.
+
+A dedicated GitHub Actions workflow has also been added to build and publish the custom `amd64` Docker images to Docker Hub, including both the custom NGINX base image and the final ingress-nginx controller image.
+
+---
+
 # Ingress NGINX Retirement
 
 ## Retiring
