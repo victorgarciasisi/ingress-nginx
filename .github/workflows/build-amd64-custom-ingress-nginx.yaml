@@ -1,0 +1,122 @@
+name: Build custom ingress-nginx amd64
+
+on:
+  workflow_dispatch:
+
+env:
+  DOCKERHUB_USER: victorgarciasisi
+  NGINX_VERSION: "1.31.1"
+  CONTROLLER_VERSION: "v1.15.1"
+  PLATFORM: linux/amd64
+  ARCH: amd64
+
+jobs:
+  build-amd64:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set image names
+        run: |
+          echo "TAG=${CONTROLLER_VERSION}-nginx${NGINX_VERSION}-amd64" >> "$GITHUB_ENV"
+          echo "NGINX_BASE_IMAGE=docker.io/${DOCKERHUB_USER}/ingress-nginx-nginx:v${NGINX_VERSION}-amd64" >> "$GITHUB_ENV"
+          echo "CONTROLLER_IMAGE=docker.io/${DOCKERHUB_USER}/ingress-nginx-controller:${CONTROLLER_VERSION}-nginx${NGINX_VERSION}-amd64" >> "$GITHUB_ENV"
+
+      - name: Login Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Verify NGINX version
+        run: |
+          grep -n "export NGINX_VERSION" images/nginx/rootfs/build.sh
+
+      - name: Build NGINX base amd64
+        run: |
+          docker build \
+            --platform "${PLATFORM}" \
+            --progress=plain \
+            -t "${NGINX_BASE_IMAGE}" \
+            images/nginx/rootfs
+
+      - name: Validate NGINX base version
+        run: |
+          docker run --rm \
+            --platform "${PLATFORM}" \
+            --entrypoint nginx \
+            "${NGINX_BASE_IMAGE}" \
+            -v
+
+      - name: Validate NGINX base architecture
+        run: |
+          docker run --rm \
+            --platform "${PLATFORM}" \
+            --entrypoint uname \
+            "${NGINX_BASE_IMAGE}" \
+            -m
+
+      - name: Push NGINX base
+        run: |
+          docker push "${NGINX_BASE_IMAGE}"
+
+      - name: Set NGINX_BASE
+        run: |
+          echo "${NGINX_BASE_IMAGE}" > NGINX_BASE
+          cat NGINX_BASE
+
+      - name: Build ingress-nginx binaries
+        run: |
+          make build \
+            ARCH="${ARCH}" \
+            TAG="${TAG}" \
+            BASE_IMAGE="$(cat NGINX_BASE)"
+
+      - name: Build controller image amd64
+        run: |
+          docker build \
+            --platform "${PLATFORM}" \
+            --progress=plain \
+            -f rootfs/Dockerfile \
+            --build-arg BASE_IMAGE="$(cat NGINX_BASE)" \
+            --build-arg VERSION="${TAG}" \
+            --build-arg TARGETARCH="${ARCH}" \
+            --build-arg COMMIT_SHA="$(git rev-parse --short HEAD)" \
+            --build-arg BUILD_ID="custom-nginx-${NGINX_VERSION}-amd64" \
+            -t "${CONTROLLER_IMAGE}" \
+            rootfs
+
+      - name: Validate controller NGINX version
+        run: |
+          docker run --rm \
+            --platform "${PLATFORM}" \
+            --entrypoint nginx \
+            "${CONTROLLER_IMAGE}" \
+            -v
+
+      - name: Validate controller architecture
+        run: |
+          docker run --rm \
+            --platform "${PLATFORM}" \
+            --entrypoint uname \
+            "${CONTROLLER_IMAGE}" \
+            -m
+
+      - name: Validate controller binary
+        run: |
+          docker run --rm \
+            --platform "${PLATFORM}" \
+            --entrypoint /nginx-ingress-controller \
+            "${CONTROLLER_IMAGE}" \
+            --version || true
+
+      - name: Push controller image
+        run: |
+          docker push "${CONTROLLER_IMAGE}"
+
+      - name: Summary
+        run: |
+          echo "NGINX base image: ${NGINX_BASE_IMAGE}"
+          echo "Controller image: ${CONTROLLER_IMAGE}"
