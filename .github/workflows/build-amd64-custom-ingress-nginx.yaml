@@ -1,4 +1,4 @@
-nname: Build custom ingress-nginx amd64
+name: Build custom ingress-nginx amd64
 
 on:
   workflow_dispatch:
