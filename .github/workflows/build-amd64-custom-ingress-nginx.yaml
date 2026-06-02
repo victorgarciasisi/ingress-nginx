@@ -1,4 +1,4 @@
-name: Build custom ingress-nginx amd64
+nname: Build custom ingress-nginx amd64
 
 on:
   workflow_dispatch:
@@ -7,6 +7,7 @@ env:
   DOCKERHUB_USER: victorgarciasisi
   NGINX_VERSION: "1.31.1"
   CONTROLLER_VERSION: "v1.15.1"
+  DOCKER_IMAGE: "alpine.3.23.4"
   PLATFORM: linux/amd64
   ARCH: amd64
 
@@ -20,9 +21,9 @@ jobs:
 
       - name: Set image names
         run: |
-          echo "TAG=${CONTROLLER_VERSION}-nginx${NGINX_VERSION}-amd64" >> "$GITHUB_ENV"
-          echo "NGINX_BASE_IMAGE=docker.io/${DOCKERHUB_USER}/ingress-nginx-nginx:v${NGINX_VERSION}-amd64" >> "$GITHUB_ENV"
-          echo "CONTROLLER_IMAGE=docker.io/${DOCKERHUB_USER}/ingress-nginx-controller:${CONTROLLER_VERSION}-nginx${NGINX_VERSION}-amd64" >> "$GITHUB_ENV"
+          echo "TAG=${CONTROLLER_VERSION}-nginx${NGINX_VERSION}-${DOCKER_IMAGE}-amd64" >> "$GITHUB_ENV"
+          echo "NGINX_BASE_IMAGE=docker.io/${DOCKERHUB_USER}/ingress-nginx-nginx:v${NGINX_VERSION}-${DOCKER_IMAGE}-amd64" >> "$GITHUB_ENV"
+          echo "CONTROLLER_IMAGE=docker.io/${DOCKERHUB_USER}/ingress-nginx-controller:${CONTROLLER_VERSION}-nginx${NGINX_VERSION}-${DOCKER_IMAGE}-amd64" >> "$GITHUB_ENV"
 
       - name: Login Docker Hub
         uses: docker/login-action@v3
@@ -84,7 +85,7 @@ jobs:
             --build-arg VERSION="${TAG}" \
             --build-arg TARGETARCH="${ARCH}" \
             --build-arg COMMIT_SHA="$(git rev-parse --short HEAD)" \
-            --build-arg BUILD_ID="custom-nginx-${NGINX_VERSION}-amd64" \
+            --build-arg BUILD_ID="custom-nginx-${NGINX_VERSION}-${DOCKER_IMAGE}-amd64" \
             -t "${CONTROLLER_IMAGE}" \
             rootfs
 
