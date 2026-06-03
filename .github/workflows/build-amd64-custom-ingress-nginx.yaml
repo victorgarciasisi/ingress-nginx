@@ -3,6 +3,10 @@ name: Build custom ingress-nginx amd64
 on:
   workflow_dispatch:
 
+concurrency:
+  group: ingress-nginx-amd64-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
   DOCKERHUB_USER: victorgarciasisi
   NGINX_VERSION: "1.31.1"
@@ -31,11 +35,14 @@ jobs:
           username: ${{ env.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Verify NGINX version
         run: |
           grep -n "export NGINX_VERSION" images/nginx/rootfs/build.sh
 
-      - name: Build NGINX base amd64
+      - name: Build NGINX base amd64 locally
         run: |
           docker build \
             --platform "${PLATFORM}" \
@@ -59,9 +66,14 @@ jobs:
             "${NGINX_BASE_IMAGE}" \
             -m
 
-      - name: Push NGINX base
+      - name: Push NGINX base with buildx
         run: |
-          docker push "${NGINX_BASE_IMAGE}"
+          docker buildx build \
+            --platform "${PLATFORM}" \
+            --progress=plain \
+            -t "${NGINX_BASE_IMAGE}" \
+            --push \
+            images/nginx/rootfs
 
       - name: Set NGINX_BASE
         run: |
@@ -75,7 +87,7 @@ jobs:
             TAG="${TAG}" \
             BASE_IMAGE="$(cat NGINX_BASE)"
 
-      - name: Build controller image amd64
+      - name: Build controller image amd64 locally
         run: |
           docker build \
             --platform "${PLATFORM}" \
@@ -113,9 +125,20 @@ jobs:
             "${CONTROLLER_IMAGE}" \
             --version || true
 
-      - name: Push controller image
+      - name: Push controller image with buildx
         run: |
-          docker push "${CONTROLLER_IMAGE}"
+          docker buildx build \
+            --platform "${PLATFORM}" \
+            --progress=plain \
+            -f rootfs/Dockerfile \
+            --build-arg BASE_IMAGE="$(cat NGINX_BASE)" \
+            --build-arg VERSION="${TAG}" \
+            --build-arg TARGETARCH="${ARCH}" \
+            --build-arg COMMIT_SHA="$(git rev-parse --short HEAD)" \
+            --build-arg BUILD_ID="custom-nginx-${NGINX_VERSION}-${DOCKER_IMAGE}-amd64" \
+            -t "${CONTROLLER_IMAGE}" \
+            --push \
+            rootfs
 
       - name: Summary
         run: |
