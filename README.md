@@ -1,5 +1,26 @@
 # Custom NGINX build
 
+## 03/06/2026
+
+fix(security): bump Go toolchain and x/net to remediate CVEs
+
+Update Go from 1.26.3/1.26.1 to 1.26.4 to rebuild ingress-nginx
+binaries with patched stdlib fixes for crypto/x509, mime and net/textproto
+vulnerabilities.
+
+Also bump golang.org/x/net to v0.55.0 to include recent security fixes
+for x/net/html and x/net/idna.
+
+Rebuild affected binaries:
+- dbg
+- nginx-ingress-controller
+- wait-shutdown
+
+This addresses scanner findings reported against Go stdlib v1.26.3 and
+golang.org/x/net v0.52.0.
+
+##  27/05/2026
+
 This fork includes a custom build of `kubernetes/ingress-nginx` based on controller `v1.15.1`, updating the embedded NGINX version from `1.27.1` to `1.31.1` in `images/nginx/rootfs/build.sh`. This change was introduced to move the bundled NGINX runtime to a version that includes the upstream security fixes required for CVE remediation.
 
 During the upgrade, the patch `images/nginx/rootfs/patches/28_nginx-1.27.1-CVE-2025-23419.patch` was removed/disabled because it was specific to the previous NGINX `1.27.1` source tree and no longer applies cleanly against NGINX `1.31.1`.
