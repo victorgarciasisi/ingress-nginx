@@ -110,7 +110,6 @@ clean-chroot-image: ## Removes local image
 
 .PHONY: build
 build:  ## Build ingress controller, debug tool and pre-stop hook.
-    GOFLAGS=-mod=mod \
 	E2E_IMAGE=golang:$(GO_VERSION)-alpine3.23 USE_SHELL=/bin/sh build/run-in-docker.sh \
 		MAC_OS=$(MAC_OS) \
 		PKG=$(PKG) \
@@ -119,8 +118,6 @@ build:  ## Build ingress controller, debug tool and pre-stop hook.
 		REPO_INFO=$(REPO_INFO) \
 		TAG=$(TAG) \
 		build/build.sh
-
-
 
 
 .PHONY: clean

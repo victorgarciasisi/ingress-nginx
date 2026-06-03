@@ -75,38 +75,6 @@ jobs:
             TAG="${TAG}" \
             BASE_IMAGE="$(cat NGINX_BASE)"
 
-      - name: Validate controller binaries
-        run: |
-          echo "Checking generated binaries..."
-
-          if [ -f "rootfs/bin/${ARCH}/nginx-ingress-controller" ]; then
-            echo "Binaries already generated in rootfs/bin/${ARCH}"
-          elif [ -d "bin/${ARCH}" ]; then
-            echo "Using fallback binaries from bin/${ARCH}"
-            mkdir -p rootfs/bin/${ARCH}
-            cp -a bin/${ARCH}/. rootfs/bin/${ARCH}/
-          elif [ -d "bin/linux/${ARCH}" ]; then
-            echo "Using fallback binaries from bin/linux/${ARCH}"
-            mkdir -p rootfs/bin/${ARCH}
-            cp -a bin/linux/${ARCH}/. rootfs/bin/${ARCH}/
-          else
-            echo "ERROR: No controller binaries found"
-            echo "Repository binary layout:"
-            find . -maxdepth 5 -type f \( \
-              -name "nginx-ingress-controller" \
-              -o -name "dbg" \
-              -o -name "wait-shutdown" \
-            \) || true
-            exit 1
-          fi
-
-          echo "Final rootfs/bin/${ARCH} content:"
-          ls -la rootfs/bin/${ARCH}
-
-          test -f rootfs/bin/${ARCH}/nginx-ingress-controller
-          test -f rootfs/bin/${ARCH}/dbg
-          test -f rootfs/bin/${ARCH}/wait-shutdown
-
       - name: Build controller image amd64
         run: |
           docker build \
