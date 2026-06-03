@@ -75,6 +75,26 @@ jobs:
             TAG="${TAG}" \
             BASE_IMAGE="$(cat NGINX_BASE)"
 
+      - name: Copy binaries into Docker build context
+        run: |
+          mkdir -p rootfs/bin/${ARCH}
+
+          if [ -d "bin/${ARCH}" ]; then
+            echo "Using binaries from bin/${ARCH}"
+            cp -a bin/${ARCH}/. rootfs/bin/${ARCH}/
+          elif [ -d "bin/linux/${ARCH}" ]; then
+            echo "Using binaries from bin/linux/${ARCH}"
+            cp -a bin/linux/${ARCH}/. rootfs/bin/${ARCH}/
+          else
+            echo "ERROR: No binaries found for architecture ${ARCH}"
+            echo "Current bin layout:"
+            find bin -maxdepth 4 -type f || true
+            exit 1
+          fi
+
+          echo "Binaries copied to rootfs/bin/${ARCH}:"
+          ls -la rootfs/bin/${ARCH}
+
       - name: Build controller image amd64
         run: |
           docker build \
