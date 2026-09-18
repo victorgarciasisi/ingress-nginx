@@ -42,6 +42,16 @@ jobs:
         run: |
           grep -n "export NGINX_VERSION" images/nginx/rootfs/build.sh
 
+      - name: Publish NGINX base as amd64 image
+        run: |
+          docker buildx build \
+            --platform "${PLATFORM}" \
+            --progress=plain \
+            --provenance=false \
+            --sbom=false \
+            --output "type=image,name=${NGINX_BASE_IMAGE},push=true,oci-mediatypes=false" \
+            images/nginx/rootfs
+
       - name: Validate NGINX base version
         run: |
           docker run --rm \
@@ -58,16 +68,6 @@ jobs:
             "${NGINX_BASE_IMAGE}" \
             -m
 
-      - name: Publish NGINX base as amd64 image
-        run: |
-          docker buildx build \
-            --platform "${PLATFORM}" \
-            --progress=plain \
-            --provenance=false \
-            --sbom=false \
-            --output "type=image,name=${NGINX_BASE_IMAGE},push=true,oci-mediatypes=false" \
-            images/nginx/rootfs
-
       - name: Set NGINX_BASE
         run: |
           echo "${NGINX_BASE_IMAGE}" > NGINX_BASE
@@ -79,6 +79,22 @@ jobs:
             ARCH="${ARCH}" \
             TAG="${TAG}" \
             BASE_IMAGE="$(cat NGINX_BASE)"
+
+      - name: Publish controller as amd64 image
+        run: |
+          docker buildx build \
+            --platform "${PLATFORM}" \
+            --progress=plain \
+            --provenance=false \
+            --sbom=false \
+            -f rootfs/Dockerfile \
+            --build-arg BASE_IMAGE="$(cat NGINX_BASE)" \
+            --build-arg VERSION="${TAG}" \
+            --build-arg TARGETARCH="${ARCH}" \
+            --build-arg COMMIT_SHA="$(git rev-parse --short HEAD)" \
+            --build-arg BUILD_ID="custom-nginx-${NGINX_VERSION}-${DOCKER_IMAGE}-amd64" \
+            --output "type=image,name=${CONTROLLER_IMAGE},push=true,oci-mediatypes=false" \
+            rootfs
 
       - name: Validate controller NGINX version
         run: |
@@ -103,22 +119,6 @@ jobs:
             --entrypoint /nginx-ingress-controller \
             "${CONTROLLER_IMAGE}" \
             --version || true
-
-      - name: Publish controller as amd64 image
-        run: |
-          docker buildx build \
-            --platform "${PLATFORM}" \
-            --progress=plain \
-            --provenance=false \
-            --sbom=false \
-            -f rootfs/Dockerfile \
-            --build-arg BASE_IMAGE="$(cat NGINX_BASE)" \
-            --build-arg VERSION="${TAG}" \
-            --build-arg TARGETARCH="${ARCH}" \
-            --build-arg COMMIT_SHA="$(git rev-parse --short HEAD)" \
-            --build-arg BUILD_ID="custom-nginx-${NGINX_VERSION}-${DOCKER_IMAGE}-amd64" \
-            --output "type=image,name=${CONTROLLER_IMAGE},push=true,oci-mediatypes=false" \
-            rootfs
 
       - name: Inspect published controller image
         run: |
