@@ -9,7 +9,7 @@ concurrency:
 
 env:
   DOCKERHUB_USER: victorgarciasisi
-  NGINX_VERSION: "1.31.1"
+  NGINX_VERSION: "1.31.2"
   CONTROLLER_VERSION: "v1.15.1"
   DOCKER_IMAGE: "alpine.3.23.4"
   PLATFORM: linux/amd64

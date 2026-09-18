@@ -1,5 +1,11 @@
 # Custom NGINX build
 
+## 18/09/2026
+
+fix(security): Update NGINX Open Source to remediate CVEs
+
+Update NGINX Open Source 1.31.1 to 1.31.2 to remediate CVE-2026-42530 and CVE-2026-42055.
+
 ## 03/06/2026
 
 fix(security): bump Go toolchain and x/net to remediate CVEs
